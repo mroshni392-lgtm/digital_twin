@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vellore Smart City – Route Overview</title>
+
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #eef2f7;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    header {
+      background: #004aad;
+      color: white;
+      text-align: center;
+      padding: 15px 0;
+      position: relative;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .go-map-btn {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #ffcc00;
+      color: #333;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .go-map-btn:hover {
+      background: #ffdb4d;
+    }
+
+    /* MENU BUTTON */
+    .menu-btn {
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #004aad;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .menu-box {
+      position: absolute;
+      top: 60px;
+      left: 15px;
+      background: white;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      border-radius: 8px;
+      display: none;
+      width: 140px;
+      z-index: 10;
+    }
+
+    .menu-box a {
+      display: block;
+      padding: 10px 15px;
+      text-decoration: none;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .menu-box a:hover {
+      background: #eef2f7;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: space-around;
+      margin: 15px auto;
+      width: 90%;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    input, select {
+      padding: 8px;
+      width: 45%;
+      border-radius: 5px;
+      border: 1px solid #aaa;
+    }
+
+    .note {
+      background: #fff3cd;
+      color: #856404;
+      margin: 15px auto;
+      padding: 12px;
+      width: 90%;
+      border-radius: 8px;
+      border-left: 5px solid #ffcc00;
+    }
+
+    table {
+      width: 90%;
+      margin: 20px auto;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background: #004aad;
+      color: white;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    tr:hover {
+      background: #f1f7ff;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>🚦 Vellore Smart City – Route Overview</h1>
+
+    <!-- ✅ MENU BUTTON ADDED -->
+    <button class="menu-btn" onclick="toggleMenu()">☰</button>
+
+    <button class="go-map-btn" onclick="goToMap()">Go to Map Page</button>
+  </header>
+
+  <!-- ✅ MENU BOX ADDED -->
+  <div class="menu-box" id="menuBox">
+    <a href="profile.html">Profile</a>
+    <a href="help.html">Help</a>
+    <a href="contact.html">Feedback</a>
+  </div>
+
+  <div class="note">
+    📊 <b>Note:</b> Below are the routes currently being monitored for Vellore Smart City traffic.
+    Click “Go to Map Page” to view live traffic visualization.
+  </div>
+
+  <div class="controls">
+    <input id="searchBox" placeholder="Search any place...">
+    <select id="filterSelect">
+      <option value="all">Filter by Start Area</option>
+    </select>
+  </div>
+
+  <table id="routeTable">
+    <thead>
+      <tr>
+        <th onclick="sortTable(0)">Start Area ⬍</th>
+        <th onclick="sortTable(1)">End Area ⬍</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    let originalData = [];
+    const sheetURL =
+      "https://script.google.com/macros/s/AKfycbzdAe7-CrAgqaH_TQdorGpHSsr2amBRB7VdHwWU74eCWMi7vLl49LxLJ2ah4cdRkHFI/exec";
+
+    async function loadRouteData() {
+      try {
+        const res = await fetch(sheetURL);
+        const data = await res.json();
+        originalData = data;
+
+        populateFilter(data);
+        renderTable(data);
+      } catch (err) {
+        alert("Failed to load route data.");
+        console.error(err);
+      }
+    }
+
+    function renderTable(data) {
+      const tbody = document.querySelector("#routeTable tbody");
+      tbody.innerHTML = "";
+      data.forEach(row => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.Start}</td>
+          <td>${row.End}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function goToMap() {
+      window.location.href = "traffic.html";
+    }
+
+    document.getElementById("searchBox").addEventListener("input", (e) => {
+      const q = e.target.value.toLowerCase();
+      const filtered = originalData.filter(
+        row =>
+          row.Start.toLowerCase().includes(q) ||
+          row.End.toLowerCase().includes(q)
+      );
+      renderTable(filtered);
+    });
+
+    function populateFilter(data) {
+      const select = document.getElementById("filterSelect");
+      const unique = [...new Set(data.map(r => r.Start))];
+      unique.forEach(area => {
+        const opt = document.createElement("option");
+        opt.value = area;
+        opt.textContent = area;
+        select.appendChild(opt);
+      });
+    }
+
+    document.getElementById("filterSelect").addEventListener("change", (e) => {
+      const val = e.target.value;
+      if (val === "all") renderTable(originalData);
+      else renderTable(originalData.filter(r => r.Start === val));
+    });
+
+    function sortTable(col) {
+      originalData.sort((a, b) =>
+        (Object.values(a)[col]).localeCompare(Object.values(b)[col])
+      );
+      renderTable(originalData);
+    }
+
+    /* ✅ MENU SCRIPT ADDED */
+    function toggleMenu() {
+      const menu = document.getElementById("menuBox");
+      menu.style.display = (menu.style.display === "block") ? "none" : "block";
+    }
+
+    loadRouteData();
+  </script>
+</body>
+</html>
